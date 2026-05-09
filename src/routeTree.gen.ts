@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSenderRouteImport } from './routes/app.sender'
+import { Route as AppSchedulerRouteImport } from './routes/app.scheduler'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -28,29 +29,37 @@ const AppSenderRoute = AppSenderRouteImport.update({
   path: '/sender',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSchedulerRoute = AppSchedulerRouteImport.update({
+  id: '/scheduler',
+  path: '/scheduler',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/app/sender'
+  fullPaths: '/' | '/app' | '/app/scheduler' | '/app/sender'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/app/sender'
-  id: '__root__' | '/' | '/app' | '/app/sender'
+  to: '/' | '/app' | '/app/scheduler' | '/app/sender'
+  id: '__root__' | '/' | '/app' | '/app/scheduler' | '/app/sender'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -81,14 +90,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSenderRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/scheduler': {
+      id: '/app/scheduler'
+      path: '/scheduler'
+      fullPath: '/app/scheduler'
+      preLoaderRoute: typeof AppSchedulerRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppSchedulerRoute: typeof AppSchedulerRoute
   AppSenderRoute: typeof AppSenderRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSchedulerRoute: AppSchedulerRoute,
   AppSenderRoute: AppSenderRoute,
 }
 
