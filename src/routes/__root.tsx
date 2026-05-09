@@ -77,12 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Ritual Multi Sender — Batch token distribution on Ritual Testnet" },
       { name: "description", content: "Send Ritual Testnet tokens to thousands of wallets in one batch. Schedule, automate, and analyze airdrops with a futuristic onchain UI." },
       { name: "author", content: "Ritual Multi Sender" },
-      { property: "og:title", content: "Ritual Multi Sender" },
-      { property: "og:description", content: "Batch token distribution + scheduler for Ritual Testnet." },
+      { property: "og:title", content: "Ritual Multi Sender — Batch token distribution on Ritual Testnet" },
+      { property: "og:description", content: "Send Ritual Testnet tokens to thousands of wallets in one batch. Schedule, automate, and analyze airdrops with a futuristic onchain UI." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "theme-color", content: "#1a0b2e" },
+      { name: "twitter:title", content: "Ritual Multi Sender — Batch token distribution on Ritual Testnet" },
+      { name: "twitter:description", content: "Send Ritual Testnet tokens to thousands of wallets in one batch. Schedule, automate, and analyze airdrops with a futuristic onchain UI." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ef490eaf-6379-498d-9aac-ca9324864689/id-preview-c178c786--ba69e8cb-0b05-4ec2-98ed-6a653d16a1f7.lovable.app-1778321945368.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ef490eaf-6379-498d-9aac-ca9324864689/id-preview-c178c786--ba69e8cb-0b05-4ec2-98ed-6a653d16a1f7.lovable.app-1778321945368.png" },
     ],
     links: [
       {
