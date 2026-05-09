@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { Toaster } from "sonner";
+import { WalletProvider } from "@/lib/ritual/wallet";
 
 function NotFoundComponent() {
   return (
@@ -72,20 +74,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Ritual Multi Sender — Batch token distribution on Ritual Testnet" },
+      { name: "description", content: "Send Ritual Testnet tokens to thousands of wallets in one batch. Schedule, automate, and analyze airdrops with a futuristic onchain UI." },
+      { name: "author", content: "Ritual Multi Sender" },
+      { property: "og:title", content: "Ritual Multi Sender" },
+      { property: "og:description", content: "Batch token distribution + scheduler for Ritual Testnet." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "theme-color", content: "#1a0b2e" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -113,7 +119,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <WalletProvider>
+        <Outlet />
+        <Toaster theme="dark" position="top-right" richColors closeButton />
+      </WalletProvider>
     </QueryClientProvider>
   );
 }
