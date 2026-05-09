@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
+import { WalletProvider } from "@/lib/ritual/wallet";
 
 function NotFoundComponent() {
   return (
