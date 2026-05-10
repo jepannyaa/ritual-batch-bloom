@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSenderRouteImport } from './routes/app.sender'
 import { Route as AppSchedulerRouteImport } from './routes/app.scheduler'
+import { Route as AppDeveloperRouteImport } from './routes/app.developer'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -34,16 +35,23 @@ const AppSchedulerRoute = AppSchedulerRouteImport.update({
   path: '/scheduler',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDeveloperRoute = AppDeveloperRouteImport.update({
+  id: '/developer',
+  path: '/developer',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/developer': typeof AppDeveloperRoute
   '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/developer': typeof AppDeveloperRoute
   '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
@@ -51,15 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/developer': typeof AppDeveloperRoute
   '/app/scheduler': typeof AppSchedulerRoute
   '/app/sender': typeof AppSenderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/app/scheduler' | '/app/sender'
+  fullPaths: '/' | '/app' | '/app/developer' | '/app/scheduler' | '/app/sender'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/app/scheduler' | '/app/sender'
-  id: '__root__' | '/' | '/app' | '/app/scheduler' | '/app/sender'
+  to: '/' | '/app' | '/app/developer' | '/app/scheduler' | '/app/sender'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/app/developer'
+    | '/app/scheduler'
+    | '/app/sender'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,15 +112,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSchedulerRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/developer': {
+      id: '/app/developer'
+      path: '/developer'
+      fullPath: '/app/developer'
+      preLoaderRoute: typeof AppDeveloperRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppDeveloperRoute: typeof AppDeveloperRoute
   AppSchedulerRoute: typeof AppSchedulerRoute
   AppSenderRoute: typeof AppSenderRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppDeveloperRoute: AppDeveloperRoute,
   AppSchedulerRoute: AppSchedulerRoute,
   AppSenderRoute: AppSenderRoute,
 }
@@ -119,3 +143,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -1,15 +1,12 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { ConnectButton } from "./ConnectButton";
-import { LayoutDashboard, Send, Clock, History, BarChart3, Settings } from "lucide-react";
+import { Send, Clock, Code2 } from "lucide-react";
 
 const NAV = [
-  { to: "/app", label: "Overview", icon: LayoutDashboard },
-  { to: "/app/sender", label: "Multi Sender", icon: Send },
+  { to: "/app/sender", label: "One Click Send", icon: Send },
   { to: "/app/scheduler", label: "Scheduler", icon: Clock },
-  { to: "/app/history", label: "History", icon: History },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/app/settings", label: "Settings", icon: Settings },
+  { to: "/app/developer", label: "Developer", icon: Code2 },
 ] as const;
 
 export function AppShell() {
