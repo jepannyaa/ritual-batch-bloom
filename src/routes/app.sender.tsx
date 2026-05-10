@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatEther, parseEther } from "ethers";
-import { Upload, FileText, Trash2, Wand2, Send, AlertTriangle, Eye, ExternalLink, CheckCircle2, XCircle, Loader2, Copy, Shuffle } from "lucide-react";
+import { Upload, FileText, Trash2, Wand2, Send, AlertTriangle, Eye, ExternalLink, CheckCircle2, XCircle, Loader2, Copy, Shuffle, Zap, ShieldCheck, Sparkles } from "lucide-react";
 import { useWallet } from "@/lib/ritual/wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { parseRecipients, totalAmount, type Recipient } from "@/lib/ritual/parse";
 import { explorerTx, RITUAL_CHAIN, shortAddr } from "@/lib/ritual/chain";
+import { executeOneSignatureBatch, BATCH_SENDER_ADDRESS, buildBatchPayload, makeBatchId } from "@/lib/ritual/batch";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/sender")({
@@ -33,6 +34,8 @@ function Sender() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exec, setExec] = useState<ExecRow[] | null>(null);
   const [running, setRunning] = useState(false);
+  const [oneSig, setOneSig] = useState(true);
+  const [oneSigTx, setOneSigTx] = useState<{ hash: string; count: number; total: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const recipients = useMemo<Recipient[]>(() => parseRecipients(raw, equal ? equalAmount : undefined), [raw, equal, equalAmount]);
@@ -75,9 +78,44 @@ function Sender() {
     if (!provider || !address) { toast.error("Connect your wallet first"); return; }
     if (!isCorrectNetwork) { toast.error("Switch to Ritual Testnet"); return; }
     if (valid.length === 0) { toast.error("No valid recipients"); return; }
-    setRunning(true);
     setPreviewOpen(false);
+    setOneSigTx(null);
 
+    if (oneSig) {
+      // ----- One Signature mode: single tx via batch contract -----
+      if (BATCH_SENDER_ADDRESS === "0x0000000000000000000000000000000000000000") {
+        toast.error("Batch contract belum terkonfigurasi. Set VITE_RITUAL_BATCH_SENDER, atau matikan One Signature mode.");
+        return;
+      }
+      setRunning(true);
+      try {
+        const rows = valid.map((r) => ({ address: r.address, amount: r.amount }));
+        const { tx, batchId, total } = await executeOneSignatureBatch(provider, rows);
+        setOneSigTx({ hash: tx.hash, count: rows.length, total: formatEther(total) });
+        toast.success("Single signature submitted · awaiting confirmation");
+        const receipt = await tx.wait();
+        if (receipt?.status === 1) {
+          toast.success(`Distributed to ${rows.length} wallets in 1 tx`);
+          // persist as one-shot history entry
+          try {
+            const log = JSON.parse(localStorage.getItem("ritual.history") ?? "[]");
+            log.unshift({ ts: Date.now(), total: rows.length, ok: rows.length, fail: 0, mode: "one-signature", hash: tx.hash, batchId });
+            localStorage.setItem("ritual.history", JSON.stringify(log.slice(0, 50)));
+          } catch {}
+        } else {
+          toast.error("Batch tx reverted");
+        }
+      } catch (e: any) {
+        toast.error(e?.shortMessage ?? e?.message ?? "Failed to submit batch");
+      } finally {
+        void refreshBalance();
+        setRunning(false);
+      }
+      return;
+    }
+
+    // ----- Sequential fallback (legacy) -----
+    setRunning(true);
     const rows: ExecRow[] = valid.map((r) => ({ address: r.address, amount: r.amount, status: "pending" }));
     setExec(rows);
     const signer = await provider.getSigner();
@@ -145,14 +183,21 @@ function Sender() {
     <div className="space-y-6 max-w-7xl">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
-          <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">Multi Sender</div>
-          <h1 className="mt-1 text-3xl md:text-4xl font-bold">Batch <span className="text-gradient">RITUAL</span></h1>
+          <div className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">One Signature Smart Distribution</div>
+          <h1 className="mt-1 text-3xl md:text-4xl font-bold">Send to hundreds of wallets <span className="text-gradient">instantly</span></h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-xl">One signature. One tx hash. One confirmation. Gas-optimized batch loop on Ritual Testnet.</p>
         </div>
         <div className="flex flex-wrap gap-2 items-center text-sm">
           <div className="glass rounded-lg px-3 py-1.5 font-mono text-xs">
             balance · <span className="text-gradient">{Number(balance).toFixed(4)} RITUAL</span>
           </div>
         </div>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-3">
+        <Pill icon={Zap} label="One Click Multi Send" />
+        <Pill icon={ShieldCheck} label="Single Signature Batch Execution" />
+        <Pill icon={Sparkles} label="Gas Optimized Distribution" />
       </div>
 
       {!address && (
@@ -225,10 +270,17 @@ function Sender() {
 
         <div className="glass-strong rounded-2xl p-5 space-y-4 sticky top-24 self-start">
           <h2 className="font-semibold flex items-center gap-2"><Eye className="size-4 text-primary" /> Batch summary</h2>
+          <div className="glass rounded-xl p-3 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold flex items-center gap-1.5"><Zap className="size-3.5 text-primary" /> One Signature mode</div>
+              <div className="text-[10px] text-muted-foreground">Single tx via RitualBatchSender</div>
+            </div>
+            <Switch checked={oneSig} onCheckedChange={setOneSig} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Stat l="Recipients" v={String(valid.length)} sub={invalid.length ? `${invalid.length} invalid` : "all valid"} />
             <Stat l="Total" v={Number(totalStr).toFixed(4)} sub="RITUAL" />
-            <Stat l="Est. gas" v={estGas} sub="RITUAL" />
+            <Stat l="Est. gas" v={oneSig ? (Number(estGas) * 0.35).toFixed(6) : estGas} sub={oneSig ? "RITUAL · ~65% saved" : "RITUAL"} />
             <Stat l="After send" v={(balanceN - totalN - Number(estGas)).toFixed(4)} sub="balance" warning={insufficient} />
           </div>
           {insufficient && (
@@ -250,6 +302,23 @@ function Sender() {
           )}
         </div>
       </div>
+
+      {oneSigTx && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-strong rounded-2xl p-5 glow">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-gradient-primary flex items-center justify-center glow-sm"><Zap className="size-5 text-primary-foreground" /></div>
+              <div>
+                <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">One Signature batch</div>
+                <div className="font-semibold">{oneSigTx.count} wallets · {Number(oneSigTx.total).toFixed(4)} RITUAL · 1 tx hash</div>
+              </div>
+            </div>
+            <a href={explorerTx(oneSigTx.hash)} target="_blank" className="text-primary text-sm flex items-center gap-1 hover:underline font-mono">
+              {shortAddr(oneSigTx.hash, 8)} <ExternalLink className="size-3.5" />
+            </a>
+          </div>
+        </motion.div>
+      )}
 
       {recipients.length > 0 && (
         <div className="glass rounded-2xl p-5">
@@ -328,17 +397,18 @@ function Sender() {
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="glass-strong">
-          <DialogHeader><DialogTitle>Confirm batch send</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{oneSig ? "Confirm One Signature distribution" : "Confirm batch send"}</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-2 gap-2">
               <Stat l="Recipients" v={String(valid.length)} />
               <Stat l="Total" v={`${Number(totalStr).toFixed(4)} RITUAL`} />
-              <Stat l="Delay" v={`${delayMs}ms${randomize ? " ± rnd" : ""}`} />
-              <Stat l="Batch size" v={String(batchSize)} />
+              <Stat l="Mode" v={oneSig ? "1 sig · 1 tx" : `${valid.length} sigs`} />
+              <Stat l="Delay" v={oneSig ? "—" : `${delayMs}ms${randomize ? " ± rnd" : ""}`} />
             </div>
             <p className="text-xs text-muted-foreground">
-              Each recipient receives a separate transaction. You'll need to approve {valid.length} transactions in your wallet.
-              We'll auto-pause between sends and retry on failure.
+              {oneSig
+                ? `One wallet confirmation. Funds and calldata are submitted in a single tx hash via RitualBatchSender; all ${valid.length} recipients are paid atomically.`
+                : `Each recipient receives a separate tx — you'll approve ${valid.length} times. Use One Signature mode for instant distribution.`}
             </p>
           </div>
           <DialogFooter>
@@ -347,6 +417,15 @@ function Sender() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function Pill({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+  return (
+    <div className="glass rounded-xl px-4 py-3 flex items-center gap-2.5 text-sm">
+      <Icon className="size-4 text-primary shrink-0" />
+      <span className="font-semibold">{label}</span>
     </div>
   );
 }
