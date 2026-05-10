@@ -1,15 +1,12 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { ConnectButton } from "./ConnectButton";
-import { LayoutDashboard, Send, Clock, History, BarChart3, Settings } from "lucide-react";
+import { Send, Clock, Code2 } from "lucide-react";
 
 const NAV = [
-  { to: "/app", label: "Overview", icon: LayoutDashboard },
-  { to: "/app/sender", label: "Multi Sender", icon: Send },
+  { to: "/app/sender", label: "One Click Send", icon: Send },
   { to: "/app/scheduler", label: "Scheduler", icon: Clock },
-  { to: "/app/history", label: "History", icon: History },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/app/settings", label: "Settings", icon: Settings },
+  { to: "/app/developer", label: "Developer", icon: Code2 },
 ] as const;
 
 export function AppShell() {
@@ -20,7 +17,7 @@ export function AppShell() {
         <Link to="/" className="px-2 mb-6"><Logo /></Link>
         <nav className="flex flex-col gap-1">
           {NAV.map((n) => {
-            const active = loc.pathname === n.to || (n.to !== "/app" && loc.pathname.startsWith(n.to));
+            const active = loc.pathname === n.to || loc.pathname.startsWith(n.to + "/");
             const Icon = n.icon;
             return (
               <Link key={n.to} to={n.to} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${active ? "bg-gradient-primary text-primary-foreground glow-sm" : "text-muted-foreground hover:text-foreground hover:bg-white/5"}`}>
@@ -50,7 +47,7 @@ export function AppShell() {
         </div>
         <nav className="lg:hidden fixed bottom-3 left-3 right-3 glass-strong rounded-2xl flex justify-around p-2 z-30">
           {NAV.map((n) => {
-            const active = loc.pathname === n.to || (n.to !== "/app" && loc.pathname.startsWith(n.to));
+            const active = loc.pathname === n.to || loc.pathname.startsWith(n.to + "/");
             const Icon = n.icon;
             return (
               <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`}>
