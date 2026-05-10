@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, Send, Clock, ShieldCheck, Sparkles, Zap, BarChart3, Wallet, Users, Cpu, Layers, Bell } from "lucide-react";
+import { ArrowRight, Send, Clock, ShieldCheck, Sparkles, Zap, BarChart3, Wallet, Cpu, Layers, KeyRound, Plus, Code2 } from "lucide-react";
 import { Logo } from "@/components/ritual/Logo";
 import { ConnectButton } from "@/components/ritual/ConnectButton";
 import { Button } from "@/components/ui/button";
@@ -10,26 +10,26 @@ import { RITUAL_CHAIN } from "@/lib/ritual/chain";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ritual Multi Sender — Batch + Scheduled token distribution on Ritual Testnet" },
-      { name: "description", content: "Distribute Ritual Testnet tokens to thousands of wallets in one batch. Schedule airdrops, simulate gas, automate campaigns." },
+      { title: "Ritual Multi Sender — One signature. Unlimited distribution." },
+      { name: "description", content: "Send Ritual Testnet tokens to hundreds of wallets in one signature. Schedule once, add wallets anytime, execute everywhere — built for Ritual Testnet automation." },
     ],
   }),
   component: Index,
 });
 
 const FEATURES = [
-  { icon: Send, title: "Batch Multi Sender", desc: "Send native RITUAL to thousands of wallets in a single optimized transaction." },
-  { icon: Clock, title: "Scheduled Airdrops", desc: "Queue, recur, and auto-execute campaigns with timezone-aware countdowns." },
-  { icon: ShieldCheck, title: "Safe by design", desc: "Address validation, duplicate detection, balance & gas pre-flight checks." },
-  { icon: Cpu, title: "AI gas advisor", desc: "Smart batch sizing & optimal send-window suggestions based on network load." },
-  { icon: Layers, title: "CSV / TXT / Paste", desc: "Import recipients however you have them — equal split or custom amounts." },
-  { icon: BarChart3, title: "Live analytics", desc: "Volume, wallets reached, gas burn and scheduler health — all in one place." },
+  { icon: Zap, title: "One Click Multi Send", desc: "1× sign, 1× tx hash, 1× confirmation. Hundreds of wallets paid atomically through RitualBatchSender." },
+  { icon: KeyRound, title: "Single Signature Authorization", desc: "EIP-712 typed-data scoped to chain 1979 — invalid on any other chain. Authorize once, execute forever." },
+  { icon: Plus, title: "Add wallets anytime", desc: "Dynamic recipient queue stays open after authorization. Append wallets right up until execution time." },
+  { icon: Cpu, title: "AI execution timing", desc: "Congestion analysis, gas prediction, and randomized timing for noise-resistant scheduled drops." },
+  { icon: ShieldCheck, title: "Safe by design", desc: "Nonce replay protection, queue checksum, max-recipient limiter, emergency pause, auto-stop on low balance." },
+  { icon: Code2, title: "Developer mode", desc: "Raw calldata preview, queue JSON editor, RPC latency, network health monitor, simulation sandbox." },
 ];
 
 const STEPS = [
-  { n: "01", t: "Connect wallet", d: "Any EVM wallet. We auto-add Ritual Testnet (chain 1979) for you." },
-  { n: "02", t: "Import recipients", d: "Paste, drop a CSV, or upload a TXT. We validate & dedupe instantly." },
-  { n: "03", t: "Send or schedule", d: "Execute now or queue for later — recurring, randomized, retried." },
+  { n: "01", t: "Authorize once", d: "Sign one EIP-712 message bound to chain 1979. Defines recipient cap, total cap, and expiry." },
+  { n: "02", t: "Build the queue", d: "Add wallets manually, by CSV, or programmatically. Keep adding even after authorization." },
+  { n: "03", t: "Execute everywhere", d: "Single tx · single hash · single confirmation. Distributed instantly to every queued wallet." },
 ];
 
 function Index() {
@@ -67,17 +67,16 @@ function Index() {
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.05 }}
           className="mt-8 text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]"
         >
-          Ship token <span className="text-gradient">campaigns</span><br />
-          at the speed of light.
+          One signature.<br />
+          <span className="text-gradient">Unlimited distribution.</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.6 }}
           className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
         >
-          The futuristic batch sender & scheduler for Ritual Testnet. Distribute to
-          thousands of wallets in one click — with simulation, retries, and
-          AI-tuned timing.
+          Built for autonomous onchain campaigns on Ritual Testnet.
+          Schedule once, add wallets anytime, execute once — distribute everywhere.
         </motion.p>
 
         <motion.div
@@ -159,7 +158,7 @@ function Index() {
       <section id="how" className="relative z-10 px-5 lg:px-10 py-20 max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <div className="text-xs font-mono uppercase tracking-[0.25em] text-accent">Workflow</div>
-          <h2 className="mt-3 text-3xl md:text-5xl font-bold">Three steps to launch.</h2>
+          <h2 className="mt-3 text-3xl md:text-5xl font-bold">Schedule once. Execute once.<br /><span className="text-gradient">Distribute everywhere.</span></h2>
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {STEPS.map((s) => (
@@ -172,6 +171,22 @@ function Index() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* PHILOSOPHY */}
+      <section className="relative z-10 px-5 lg:px-10 py-20 max-w-5xl mx-auto">
+        <div className="glass-strong rounded-3xl p-10 md:p-14 text-center glow relative overflow-hidden">
+          <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
+          <div className="relative">
+            <div className="text-xs font-mono uppercase tracking-[0.3em] text-primary">Philosophy</div>
+            <p className="mt-6 text-2xl md:text-4xl font-bold leading-[1.2] max-w-3xl mx-auto">
+              "Tell your agent to read{" "}
+              <a href="https://skills.ritualfoundation.org" target="_blank" className="text-gradient hover:underline">skills.ritualfoundation.org</a>
+              {" "}and go build something that <span className="text-gradient">outlasts you</span>."
+            </p>
+            <div className="mt-6 text-sm text-muted-foreground font-mono">— ritual foundation</div>
+          </div>
         </div>
       </section>
 
