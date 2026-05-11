@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatEther, parseEther } from "ethers";
-import { Upload, FileText, Trash2, Wand2, Send, AlertTriangle, Eye, ExternalLink, CheckCircle2, XCircle, Loader2, Copy, Shuffle, Zap, ShieldCheck, Sparkles } from "lucide-react";
+import { Contract, formatUnits, parseUnits } from "ethers";
+import { Upload, FileText, Trash2, Wand2, Send, AlertTriangle, Eye, ExternalLink, CheckCircle2, XCircle, Loader2, Copy, Shuffle, Zap, ShieldCheck, Sparkles, Droplets, Coins } from "lucide-react";
 import { useWallet } from "@/lib/ritual/wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { parseRecipients, totalAmount, type Recipient } from "@/lib/ritual/parse";
 import { explorerTx, RITUAL_CHAIN, shortAddr } from "@/lib/ritual/chain";
 import { executeOneSignatureBatch, BATCH_SENDER_ADDRESS, buildBatchPayload, makeBatchId } from "@/lib/ritual/batch";
+import { TOKENS, RUSDC_ABI, type TokenConfig } from "@/lib/ritual/tokens";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/sender")({
@@ -25,6 +26,11 @@ type ExecRow = { address: string; amount: string; status: "pending" | "sending" 
 
 function Sender() {
   const { address, isCorrectNetwork, balance, provider, connect, switchNetwork, refreshBalance } = useWallet();
+  const [tokenKey, setTokenKey] = useState<string>("RITUAL");
+  const token: TokenConfig = TOKENS[tokenKey];
+  const [tokenBalance, setTokenBalance] = useState<string>("0");
+  const [faucetCooldown, setFaucetCooldown] = useState<number>(0);
+  const [faucetLoading, setFaucetLoading] = useState(false);
   const [raw, setRaw] = useState("");
   const [equal, setEqual] = useState(false);
   const [equalAmount, setEqualAmount] = useState("0.01");
@@ -38,15 +44,64 @@ function Sender() {
   const [oneSigTx, setOneSigTx] = useState<{ hash: string; count: number; total: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const recipients = useMemo<Recipient[]>(() => parseRecipients(raw, equal ? equalAmount : undefined), [raw, equal, equalAmount]);
+  const recipients = useMemo<Recipient[]>(() => parseRecipients(raw, equal ? equalAmount : undefined, token.decimals), [raw, equal, equalAmount, token.decimals]);
   const valid = recipients.filter((r) => r.valid);
   const invalid = recipients.filter((r) => !r.valid);
-  const total = useMemo(() => totalAmount(recipients), [recipients]);
-  const totalStr = formatEther(total);
-  const balanceN = Number(balance);
+  const total = useMemo(() => totalAmount(recipients, token.decimals), [recipients, token.decimals]);
+  const totalStr = formatUnits(total, token.decimals);
+  const displayBalance = token.isNative ? balance : tokenBalance;
+  const balanceN = Number(displayBalance);
   const totalN = Number(totalStr);
   const insufficient = totalN > balanceN;
   const estGas = (valid.length * 0.000021).toFixed(6);
+
+  // Load ERC20 balance + faucet cooldown
+  useEffect(() => {
+    if (token.isNative) { setTokenBalance("0"); setFaucetCooldown(0); return; }
+    if (!provider || !address || !isCorrectNetwork || !token.address) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const c = new Contract(token.address!, RUSDC_ABI, provider);
+        const [bal, cd] = await Promise.all([
+          c.balanceOf(address),
+          token.hasFaucet ? c.faucetCooldownRemaining(address).catch(() => 0n) : Promise.resolve(0n),
+        ]);
+        if (!cancelled) {
+          setTokenBalance(formatUnits(bal, token.decimals));
+          setFaucetCooldown(Number(cd));
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [provider, address, isCorrectNetwork, token, faucetLoading]);
+
+  const refreshTokenBalance = async () => {
+    if (token.isNative || !provider || !address || !token.address) return;
+    try {
+      const c = new Contract(token.address, RUSDC_ABI, provider);
+      const bal = await c.balanceOf(address);
+      setTokenBalance(formatUnits(bal, token.decimals));
+    } catch {}
+  };
+
+  const claimFaucet = async () => {
+    if (!provider || !token.address || !token.hasFaucet) return;
+    setFaucetLoading(true);
+    try {
+      const signer = await provider.getSigner();
+      const c = new Contract(token.address, RUSDC_ABI, signer);
+      const tx = await c.faucet();
+      toast.success(`Faucet tx submitted · ${shortAddr(tx.hash, 6)}`);
+      await tx.wait();
+      toast.success(`Claimed ${token.symbol} from faucet`);
+      await refreshTokenBalance();
+    } catch (e: any) {
+      toast.error(e?.shortMessage ?? e?.reason ?? e?.message ?? "Faucet claim failed");
+    } finally {
+      setFaucetLoading(false);
+    }
+  };
 
   const handleFile = async (file: File) => {
     const text = await file.text();
@@ -81,7 +136,7 @@ function Sender() {
     setPreviewOpen(false);
     setOneSigTx(null);
 
-    if (oneSig) {
+    if (oneSig && token.isNative) {
       // ----- One Signature mode: single tx via batch contract -----
       if (BATCH_SENDER_ADDRESS === "0x0000000000000000000000000000000000000000") {
         toast.error("Batch contract belum terkonfigurasi. Set VITE_RITUAL_BATCH_SENDER, atau matikan One Signature mode.");
@@ -91,7 +146,7 @@ function Sender() {
       try {
         const rows = valid.map((r) => ({ address: r.address, amount: r.amount }));
         const { tx, batchId, total } = await executeOneSignatureBatch(provider, rows);
-        setOneSigTx({ hash: tx.hash, count: rows.length, total: formatEther(total) });
+        setOneSigTx({ hash: tx.hash, count: rows.length, total: formatUnits(total, 18) });
         toast.success("Single signature submitted · awaiting confirmation");
         const receipt = await tx.wait();
         if (receipt?.status === 1) {
@@ -99,7 +154,7 @@ function Sender() {
           // persist as one-shot history entry
           try {
             const log = JSON.parse(localStorage.getItem("ritual.history") ?? "[]");
-            log.unshift({ ts: Date.now(), total: rows.length, ok: rows.length, fail: 0, mode: "one-signature", hash: tx.hash, batchId });
+            log.unshift({ ts: Date.now(), total: rows.length, ok: rows.length, fail: 0, mode: "one-signature", hash: tx.hash, batchId, token: token.symbol });
             localStorage.setItem("ritual.history", JSON.stringify(log.slice(0, 50)));
           } catch {}
         } else {
@@ -119,14 +174,21 @@ function Sender() {
     const rows: ExecRow[] = valid.map((r) => ({ address: r.address, amount: r.amount, status: "pending" }));
     setExec(rows);
     const signer = await provider.getSigner();
+    const erc20Contract = token.isNative ? null : new Contract(token.address!, RUSDC_ABI, signer);
 
     for (let i = 0; i < rows.length; i++) {
       rows[i].status = "sending";
       setExec([...rows]);
       try {
-        const tx = await signer.sendTransaction({ to: rows[i].address, value: parseEther(rows[i].amount) });
-        rows[i].hash = tx.hash;
-        await tx.wait();
+        if (erc20Contract) {
+          const tx = await erc20Contract.transfer(rows[i].address, parseUnits(rows[i].amount, token.decimals));
+          rows[i].hash = tx.hash;
+          await tx.wait();
+        } else {
+          const tx = await signer.sendTransaction({ to: rows[i].address, value: parseUnits(rows[i].amount, 18) });
+          rows[i].hash = tx.hash;
+          await tx.wait();
+        }
         rows[i].status = "success";
       } catch (e: any) {
         rows[i].status = "failed";
@@ -142,12 +204,13 @@ function Sender() {
     if (fail === 0) toast.success(`Batch complete · ${ok} sent`);
     else toast.warning(`Batch finished with ${fail} failed`);
     void refreshBalance();
+    void refreshTokenBalance();
     setRunning(false);
 
     // persist history
     try {
       const log = JSON.parse(localStorage.getItem("ritual.history") ?? "[]");
-      log.unshift({ ts: Date.now(), total: rows.length, ok, fail, rows });
+      log.unshift({ ts: Date.now(), total: rows.length, ok, fail, rows, token: token.symbol });
       localStorage.setItem("ritual.history", JSON.stringify(log.slice(0, 50)));
     } catch {}
   };
@@ -167,10 +230,13 @@ function Sender() {
     if (failed.length === 0) return;
     setRunning(true);
     const signer = await provider.getSigner();
+    const erc20Contract = token.isNative ? null : new Contract(token.address!, RUSDC_ABI, signer);
     for (const row of failed) {
       row.status = "sending"; setExec([...exec]);
       try {
-        const tx = await signer.sendTransaction({ to: row.address, value: parseEther(row.amount) });
+        const tx = erc20Contract
+          ? await erc20Contract.transfer(row.address, parseUnits(row.amount, token.decimals))
+          : await signer.sendTransaction({ to: row.address, value: parseUnits(row.amount, 18) });
         row.hash = tx.hash; await tx.wait(); row.status = "success"; row.error = undefined;
       } catch (e: any) { row.status = "failed"; row.error = e?.shortMessage ?? "Failed"; }
       setExec([...exec]);
@@ -189,8 +255,41 @@ function Sender() {
         </div>
         <div className="flex flex-wrap gap-2 items-center text-sm">
           <div className="glass rounded-lg px-3 py-1.5 font-mono text-xs">
-            balance · <span className="text-gradient">{Number(balance).toFixed(4)} RITUAL</span>
+            balance · <span className="text-gradient">{Number(displayBalance).toFixed(4)} {token.symbol}</span>
           </div>
+          {!token.isNative && token.hasFaucet && (
+            <Button size="sm" variant="outline" className="glass" disabled={!address || !isCorrectNetwork || faucetLoading || faucetCooldown > 0} onClick={claimFaucet}>
+              {faucetLoading ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Droplets className="size-3.5 mr-1" />}
+              {faucetCooldown > 0 ? `Cooldown ${Math.ceil(faucetCooldown / 60)}m` : `Claim ${token.symbol}`}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Token selector */}
+      <div className="glass rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-3 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          <Coins className="size-3.5" /> Select asset to distribute
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {Object.entries(TOKENS).map(([k, t]) => {
+            const active = k === tokenKey;
+            return (
+              <button
+                key={k}
+                onClick={() => setTokenKey(k)}
+                className={`text-left glass rounded-xl p-4 transition border ${active ? "border-primary glow-sm" : "border-transparent hover:border-primary/40"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold">{t.symbol}</div>
+                    <div className="text-[10px] text-muted-foreground">{t.name} {t.isNative ? "· native" : `· ${shortAddr(t.address!, 4)}`}</div>
+                  </div>
+                  <div className={`size-2.5 rounded-full ${active ? "bg-primary glow-sm" : "bg-muted-foreground/30"}`} />
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -273,19 +372,21 @@ function Sender() {
           <div className="glass rounded-xl p-3 flex items-center justify-between">
             <div>
               <div className="text-xs font-semibold flex items-center gap-1.5"><Zap className="size-3.5 text-primary" /> One Signature mode</div>
-              <div className="text-[10px] text-muted-foreground">Single tx via RitualBatchSender</div>
+              <div className="text-[10px] text-muted-foreground">
+                {token.isNative ? "Single tx via RitualBatchSender" : "Native RITUAL only · ERC20 uses sequential transfer"}
+              </div>
             </div>
-            <Switch checked={oneSig} onCheckedChange={setOneSig} />
+            <Switch checked={oneSig && token.isNative} onCheckedChange={setOneSig} disabled={!token.isNative} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Stat l="Recipients" v={String(valid.length)} sub={invalid.length ? `${invalid.length} invalid` : "all valid"} />
-            <Stat l="Total" v={Number(totalStr).toFixed(4)} sub="RITUAL" />
-            <Stat l="Est. gas" v={oneSig ? (Number(estGas) * 0.35).toFixed(6) : estGas} sub={oneSig ? "RITUAL · ~65% saved" : "RITUAL"} />
-            <Stat l="After send" v={(balanceN - totalN - Number(estGas)).toFixed(4)} sub="balance" warning={insufficient} />
+            <Stat l="Total" v={Number(totalStr).toFixed(token.decimals === 6 ? 2 : 4)} sub={token.symbol} />
+            <Stat l="Est. gas" v={oneSig && token.isNative ? (Number(estGas) * 0.35).toFixed(6) : estGas} sub={oneSig && token.isNative ? "RITUAL · ~65% saved" : "RITUAL"} />
+            <Stat l="After send" v={token.isNative ? (balanceN - totalN - Number(estGas)).toFixed(4) : (balanceN - totalN).toFixed(token.decimals === 6 ? 2 : 4)} sub={`${token.symbol} balance`} warning={insufficient} />
           </div>
           {insufficient && (
             <div className="glass rounded-lg p-3 text-xs text-destructive flex items-start gap-2">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" /> Not enough RITUAL to cover this batch. Top up via the <a href={RITUAL_CHAIN.faucet} target="_blank" className="underline">faucet</a>.
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" /> Not enough {token.symbol} to cover this batch. {token.isNative ? <>Top up via the <a href={RITUAL_CHAIN.faucet} target="_blank" className="underline ml-1">faucet</a>.</> : token.hasFaucet ? "Use the Claim button above." : null}
             </div>
           )}
           <Button
@@ -310,7 +411,7 @@ function Sender() {
               <div className="size-10 rounded-xl bg-gradient-primary flex items-center justify-center glow-sm"><Zap className="size-5 text-primary-foreground" /></div>
               <div>
                 <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">One Signature batch</div>
-                <div className="font-semibold">{oneSigTx.count} wallets · {Number(oneSigTx.total).toFixed(4)} RITUAL · 1 tx hash</div>
+                <div className="font-semibold">{oneSigTx.count} wallets · {Number(oneSigTx.total).toFixed(4)} {token.symbol} · 1 tx hash</div>
               </div>
             </div>
             <a href={explorerTx(oneSigTx.hash)} target="_blank" className="text-primary text-sm flex items-center gap-1 hover:underline font-mono">
@@ -397,18 +498,18 @@ function Sender() {
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="glass-strong">
-          <DialogHeader><DialogTitle>{oneSig ? "Confirm One Signature distribution" : "Confirm batch send"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{oneSig && token.isNative ? "Confirm One Signature distribution" : "Confirm batch send"}</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-2 gap-2">
               <Stat l="Recipients" v={String(valid.length)} />
-              <Stat l="Total" v={`${Number(totalStr).toFixed(4)} RITUAL`} />
-              <Stat l="Mode" v={oneSig ? "1 sig · 1 tx" : `${valid.length} sigs`} />
-              <Stat l="Delay" v={oneSig ? "—" : `${delayMs}ms${randomize ? " ± rnd" : ""}`} />
+              <Stat l="Total" v={`${Number(totalStr).toFixed(token.decimals === 6 ? 2 : 4)} ${token.symbol}`} />
+              <Stat l="Mode" v={oneSig && token.isNative ? "1 sig · 1 tx" : `${valid.length} sigs`} />
+              <Stat l="Delay" v={oneSig && token.isNative ? "—" : `${delayMs}ms${randomize ? " ± rnd" : ""}`} />
             </div>
             <p className="text-xs text-muted-foreground">
-              {oneSig
+              {oneSig && token.isNative
                 ? `One wallet confirmation. Funds and calldata are submitted in a single tx hash via RitualBatchSender; all ${valid.length} recipients are paid atomically.`
-                : `Each recipient receives a separate tx — you'll approve ${valid.length} times. Use One Signature mode for instant distribution.`}
+                : `Each recipient receives a separate ${token.symbol} transfer — you'll approve ${valid.length} times.${token.isNative ? " Use One Signature mode for instant distribution." : ""}`}
             </p>
           </div>
           <DialogFooter>
