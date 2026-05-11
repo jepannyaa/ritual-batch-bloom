@@ -1,4 +1,4 @@
-import { isAddress, parseEther } from "ethers";
+import { isAddress, parseUnits } from "ethers";
 
 export type Recipient = {
   id: string;
@@ -12,7 +12,7 @@ export type Recipient = {
 let _id = 0;
 const nid = () => `${Date.now()}-${_id++}`;
 
-export function parseRecipients(text: string, equalAmount?: string): Recipient[] {
+export function parseRecipients(text: string, equalAmount?: string, decimals = 18): Recipient[] {
   const rows = text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -31,7 +31,7 @@ export function parseRecipients(text: string, equalAmount?: string): Recipient[]
     if (!isAddress(address)) {
       valid = false; error = "Invalid address";
     } else {
-      try { parseEther(amount); } catch { valid = false; error = "Invalid amount"; }
+      try { parseUnits(amount, decimals); } catch { valid = false; error = "Invalid amount"; }
     }
     const duplicate = seen.has(address);
     if (valid && !duplicate) seen.add(address);
@@ -41,11 +41,11 @@ export function parseRecipients(text: string, equalAmount?: string): Recipient[]
   return out;
 }
 
-export function totalAmount(rows: Recipient[]) {
+export function totalAmount(rows: Recipient[], decimals = 18) {
   let sum = 0n;
   for (const r of rows) {
     if (!r.valid) continue;
-    try { sum += parseEther(r.amount); } catch {}
+    try { sum += parseUnits(r.amount, decimals); } catch {}
   }
   return sum;
 }
