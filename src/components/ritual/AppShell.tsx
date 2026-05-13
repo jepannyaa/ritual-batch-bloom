@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { ConnectButton } from "./ConnectButton";
-import { Send, Clock, Code2 } from "lucide-react";
+import { Send, Clock, Code2, ExternalLink } from "lucide-react";
 
 const NAV = [
   { to: "/app/sender", label: "One Click Send", icon: Send },
@@ -32,6 +32,18 @@ export function AppShell() {
           Grab tokens from the{" "}
           <a href="https://faucet.ritualfoundation.org" target="_blank" className="text-gradient font-semibold">faucet ↗</a>
         </div>
+        <a
+          href="https://risa-finance.netlify.app/"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm glass hover:glow-sm transition group"
+        >
+          <span className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-gradient-primary glow-sm" />
+            <span className="font-semibold text-foreground">Risa Finance</span>
+          </span>
+          <ExternalLink className="size-3.5 text-muted-foreground group-hover:text-primary" />
+        </a>
       </aside>
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-20 flex items-center justify-between px-5 lg:px-8 py-4 glass-strong border-b border-border/40">

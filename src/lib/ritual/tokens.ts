@@ -10,6 +10,7 @@ export type TokenConfig = {
 };
 
 export const RUSDC_ADDRESS = "0x76E78dB66adA9D58037A65D735e476D88CDDfE6d";
+export const SIGGY_ADDRESS = "0x8c04B330DBFA60eD6502d7c2AE2a58Bd3fCb085b";
 
 export const RUSDC_ABI = [
   "function faucet() external",
@@ -36,6 +37,14 @@ export const TOKENS: Record<string, TokenConfig> = {
     decimals: 6,
     isNative: false,
     hasFaucet: true,
+  },
+  SIGGY: {
+    symbol: "SIGGY",
+    name: "SIGGY Inu",
+    address: SIGGY_ADDRESS,
+    decimals: 18,
+    isNative: false,
+    hasFaucet: false,
   },
 };
 
