@@ -48,6 +48,7 @@ function Index() {
           <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <ConnectButton />
         </div>
       </header>
