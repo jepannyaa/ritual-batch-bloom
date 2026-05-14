@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/lib/ritual/wallet";
+import { ThemeProvider } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -123,10 +124,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <Outlet />
-        <Toaster theme="dark" position="top-right" richColors closeButton />
-      </WalletProvider>
+      <ThemeProvider>
+        <WalletProvider>
+          <Outlet />
+          <Toaster position="top-right" richColors closeButton />
+        </WalletProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

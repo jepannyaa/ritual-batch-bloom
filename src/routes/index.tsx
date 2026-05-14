@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Send, Clock, ShieldCheck, Sparkles, Zap, BarChart3, Wallet, Cpu, Layers, KeyRound, Plus, Code2 } from "lucide-react";
 import { Logo } from "@/components/ritual/Logo";
 import { ConnectButton } from "@/components/ritual/ConnectButton";
+import { ThemeToggle } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { RITUAL_CHAIN } from "@/lib/ritual/chain";
 
@@ -48,6 +49,7 @@ function Index() {
           <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <ConnectButton />
         </div>
       </header>
