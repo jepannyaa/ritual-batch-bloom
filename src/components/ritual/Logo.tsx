@@ -1,11 +1,10 @@
+import logoMark from "@/assets/logo-mark.jpeg";
+
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="relative h-8 w-8">
-        <div className="absolute inset-0 rounded-lg bg-gradient-primary glow-sm animate-pulse-glow" />
-        <div className="absolute inset-[3px] rounded-md bg-background flex items-center justify-center">
-          <span className="text-gradient text-sm font-bold">R</span>
-        </div>
+      <div className="relative h-9 w-9 rounded-lg overflow-hidden glow-sm animate-pulse-glow ring-1 ring-border">
+        <img src={logoMark} alt="Ritual" className="h-full w-full object-cover" />
       </div>
       <div className="leading-tight">
         <div className="text-sm font-bold tracking-tight">Ritual</div>
