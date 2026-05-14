@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { ConnectButton } from "./ConnectButton";
 import { Send, Clock, Code2, ExternalLink } from "lucide-react";
+import { ThemeToggle } from "@/lib/theme";
 
 const NAV = [
   { to: "/app/sender", label: "One Click Send", icon: Send },
@@ -52,7 +53,10 @@ export function AppShell() {
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
             Ritual Testnet · Chain 1979 · RPC online
           </div>
-          <ConnectButton />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <ConnectButton />
+          </div>
         </header>
         <div className="px-5 lg:px-8 py-6">
           <Outlet />
