@@ -9,11 +9,11 @@ export const batchSenderIface = new Interface(BATCH_SENDER_ABI);
 /// Configurable contract address; falls back to a known stub for demo.
 export const BATCH_SENDER_ADDRESS =
   (import.meta.env.VITE_RITUAL_BATCH_SENDER as string | undefined) ??
-  "0x0000000000000000000000000000000000000000";
+  "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8";
 
 export const AUTH_MANAGER_ADDRESS =
   (import.meta.env.VITE_RITUAL_AUTH_MANAGER as string | undefined) ??
-  "0x0000000000000000000000000000000000000000";
+  "0xd9145CCE52D386f254917e481eB44e9943F39138";
 
 export type BatchInput = { address: string; amount: string };
 
