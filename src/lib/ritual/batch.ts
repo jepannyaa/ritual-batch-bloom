@@ -6,7 +6,7 @@ export const BATCH_SENDER_ABI = [
 ];
 export const batchSenderIface = new Interface(BATCH_SENDER_ABI);
 
-/// Configurable contract address; falls back to a known stub for demo.
+/// Ritual chain 1979 deployed contract addresses; falls back to zero address if unset.
 export const BATCH_SENDER_ADDRESS =
   (import.meta.env.VITE_RITUAL_BATCH_SENDER as string | undefined) ??
   "0x0000000000000000000000000000000000000000";
@@ -14,6 +14,11 @@ export const BATCH_SENDER_ADDRESS =
 export const AUTH_MANAGER_ADDRESS =
   (import.meta.env.VITE_RITUAL_AUTH_MANAGER as string | undefined) ??
   "0x0000000000000000000000000000000000000000";
+
+export const SCHEDULER_EXECUTOR_ADDRESS =
+  (import.meta.env.VITE_RITUAL_SCHEDULER_EXECUTOR as string | undefined) ??
+  "0x0000000000000000000000000000000000000000";
+
 
 export type BatchInput = { address: string; amount: string };
 
